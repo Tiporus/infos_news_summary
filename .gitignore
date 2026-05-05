@@ -1,0 +1,33 @@
+node_modules
+.next
+out
+dist
+
+.env
+.env.local
+.env.*.local
+
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+
+# SQLite
+*.db
+*.db-journal
+prisma/dev.db
+prisma/migrations/dev/
+
+# IDE
+.idea
+.vscode
+*.swp
+
+next-env.d.ts
+
+# Local Claude Code workspace state
+.claude/
+
+# TS build info
+*.tsbuildinfo
