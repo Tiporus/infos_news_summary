@@ -1,0 +1,56 @@
+// Prisma schema — agrégateur de news style Ground.news
+// Migration : `npx prisma migrate dev`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Source {
+  id         String     @id
+  name       String
+  rssUrl     String
+  homepage   String
+  country    String
+  language   String
+  bias       String
+  factuality String
+  active     Boolean    @default(true)
+  articles   Article[]
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  sourceId    String
+  source      Source   @relation(fields: [sourceId], references: [id])
+  title       String
+  url         String   @unique
+  excerpt     String?
+  publishedAt DateTime
+  fetchedAt   DateTime @default(now())
+  storyId     String?
+  story       Story?   @relation(fields: [storyId], references: [id])
+
+  @@index([publishedAt])
+  @@index([storyId])
+  @@index([sourceId])
+}
+
+model Story {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  summary       String?
+  category      String
+  region        String
+  firstSeenAt   DateTime  @default(now())
+  lastUpdatedAt DateTime  @updatedAt
+  articles      Article[]
+
+  @@index([region, category])
+  @@index([lastUpdatedAt])
+}

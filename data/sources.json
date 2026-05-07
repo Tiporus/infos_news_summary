@@ -1,0 +1,312 @@
+[
+  {
+    "id": "le-monde",
+    "name": "Le Monde",
+    "rssUrl": "https://www.lemonde.fr/rss/une.xml",
+    "homepage": "https://www.lemonde.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER_LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "le-figaro",
+    "name": "Le Figaro",
+    "rssUrl": "https://www.lefigaro.fr/rss/figaro_actualites.xml",
+    "homepage": "https://www.lefigaro.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER_RIGHT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "liberation",
+    "name": "Libération",
+    "rssUrl": "https://www.liberation.fr/arc/outboundfeeds/rss/?outputType=xml",
+    "homepage": "https://www.liberation.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "france-info",
+    "name": "France Info",
+    "rssUrl": "https://www.francetvinfo.fr/titres.rss",
+    "homepage": "https://www.francetvinfo.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "mediapart",
+    "name": "Mediapart",
+    "rssUrl": "https://www.mediapart.fr/articles/feed",
+    "homepage": "https://www.mediapart.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "les-echos",
+    "name": "Les Échos",
+    "rssUrl": "https://services.lesechos.fr/rss/les-echos-monde.xml",
+    "homepage": "https://www.lesechos.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER_RIGHT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "la-croix",
+    "name": "La Croix",
+    "rssUrl": "https://www.la-croix.com/RSS",
+    "homepage": "https://www.la-croix.com",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "le-point",
+    "name": "Le Point",
+    "rssUrl": "https://www.lepoint.fr/rss.xml",
+    "homepage": "https://www.lepoint.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER_RIGHT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "lexpress",
+    "name": "L'Express",
+    "rssUrl": "https://www.lexpress.fr/arc/outboundfeeds/rss/?outputType=xml",
+    "homepage": "https://www.lexpress.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "marianne",
+    "name": "Marianne",
+    "rssUrl": "https://www.marianne.net/rss.xml",
+    "homepage": "https://www.marianne.net",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER_LEFT",
+    "factuality": "MIXED"
+  },
+  {
+    "id": "france-24",
+    "name": "France 24",
+    "rssUrl": "https://www.france24.com/fr/rss",
+    "homepage": "https://www.france24.com",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "rfi",
+    "name": "RFI",
+    "rssUrl": "https://www.rfi.fr/fr/rss",
+    "homepage": "https://www.rfi.fr",
+    "country": "FR",
+    "language": "fr",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "bbc",
+    "name": "BBC News",
+    "rssUrl": "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "homepage": "https://www.bbc.com/news",
+    "country": "GB",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "the-guardian",
+    "name": "The Guardian",
+    "rssUrl": "https://www.theguardian.com/world/rss",
+    "homepage": "https://www.theguardian.com",
+    "country": "GB",
+    "language": "en",
+    "bias": "LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "politico-eu",
+    "name": "Politico Europe",
+    "rssUrl": "https://www.politico.eu/feed/",
+    "homepage": "https://www.politico.eu",
+    "country": "EU",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "euronews",
+    "name": "Euronews",
+    "rssUrl": "https://www.euronews.com/rss?level=theme&name=news",
+    "homepage": "https://www.euronews.com",
+    "country": "EU",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "deutsche-welle",
+    "name": "Deutsche Welle",
+    "rssUrl": "https://rss.dw.com/rdf/rss-en-world",
+    "homepage": "https://www.dw.com",
+    "country": "DE",
+    "language": "en",
+    "bias": "CENTER_LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "el-pais",
+    "name": "El País",
+    "rssUrl": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+    "homepage": "https://english.elpais.com",
+    "country": "ES",
+    "language": "es",
+    "bias": "CENTER_LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "la-repubblica",
+    "name": "La Repubblica",
+    "rssUrl": "https://www.repubblica.it/rss/homepage/rss2.0.xml",
+    "homepage": "https://www.repubblica.it",
+    "country": "IT",
+    "language": "it",
+    "bias": "CENTER_LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "spiegel-international",
+    "name": "Der Spiegel International",
+    "rssUrl": "https://www.spiegel.de/international/index.rss",
+    "homepage": "https://www.spiegel.de/international",
+    "country": "DE",
+    "language": "en",
+    "bias": "CENTER_LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "reuters-world",
+    "name": "Reuters World",
+    "rssUrl": "https://www.reutersagency.com/feed/?best-topics=political-general&post_type=best",
+    "homepage": "https://www.reuters.com",
+    "country": "US",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "ap-news",
+    "name": "Associated Press",
+    "rssUrl": "https://apnews.com/index.rss",
+    "homepage": "https://apnews.com",
+    "country": "US",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "nyt-world",
+    "name": "The New York Times — World",
+    "rssUrl": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+    "homepage": "https://www.nytimes.com",
+    "country": "US",
+    "language": "en",
+    "bias": "CENTER_LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "washington-post-world",
+    "name": "Washington Post — World",
+    "rssUrl": "https://feeds.washingtonpost.com/rss/world",
+    "homepage": "https://www.washingtonpost.com",
+    "country": "US",
+    "language": "en",
+    "bias": "CENTER_LEFT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "wsj-world",
+    "name": "Wall Street Journal — World",
+    "rssUrl": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+    "homepage": "https://www.wsj.com",
+    "country": "US",
+    "language": "en",
+    "bias": "CENTER_RIGHT",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "al-jazeera",
+    "name": "Al Jazeera English",
+    "rssUrl": "https://www.aljazeera.com/xml/rss/all.xml",
+    "homepage": "https://www.aljazeera.com",
+    "country": "QA",
+    "language": "en",
+    "bias": "CENTER_LEFT",
+    "factuality": "MIXED"
+  },
+  {
+    "id": "bloomberg",
+    "name": "Bloomberg",
+    "rssUrl": "https://feeds.bloomberg.com/markets/news.rss",
+    "homepage": "https://www.bloomberg.com",
+    "country": "US",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "ft-world",
+    "name": "Financial Times — World",
+    "rssUrl": "https://www.ft.com/world?format=rss",
+    "homepage": "https://www.ft.com",
+    "country": "GB",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "the-economist",
+    "name": "The Economist",
+    "rssUrl": "https://www.economist.com/international/rss.xml",
+    "homepage": "https://www.economist.com",
+    "country": "GB",
+    "language": "en",
+    "bias": "CENTER",
+    "factuality": "HIGH"
+  },
+  {
+    "id": "fox-news-world",
+    "name": "Fox News — World",
+    "rssUrl": "https://moxie.foxnews.com/google-publisher/world.xml",
+    "homepage": "https://www.foxnews.com",
+    "country": "US",
+    "language": "en",
+    "bias": "RIGHT",
+    "factuality": "MIXED"
+  },
+  {
+    "id": "valeurs-actuelles",
+    "name": "Valeurs Actuelles",
+    "rssUrl": "https://www.valeursactuelles.com/feed/",
+    "homepage": "https://www.valeursactuelles.com",
+    "country": "FR",
+    "language": "fr",
+    "bias": "RIGHT",
+    "factuality": "MIXED"
+  }
+]
