@@ -5,7 +5,7 @@ import { getStories } from "@/lib/stories";
 import { REGIONS } from "@/types";
 import type { Region } from "@/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const REGION_LABEL: Record<Region, string> = {
   FR: "France",

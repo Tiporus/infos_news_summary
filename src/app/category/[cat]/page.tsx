@@ -5,7 +5,7 @@ import { getStories } from "@/lib/stories";
 import { CATEGORIES } from "@/types";
 import type { Category } from "@/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const CATEGORY_LABEL: Record<Category, string> = {
   POLITICS: "Politique",

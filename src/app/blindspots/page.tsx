@@ -2,7 +2,7 @@ import { StoryCard } from "@/components/StoryCard";
 import { countByBias, detectBlindspot } from "@/lib/bias";
 import { getStories } from "@/lib/stories";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function BlindspotsPage() {
   const stories = await getStories({ limit: 200 });

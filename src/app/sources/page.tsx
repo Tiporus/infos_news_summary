@@ -3,7 +3,7 @@ import { BIASES } from "@/types";
 import type { Bias } from "@/types";
 import { BIAS_BG, BIAS_LABEL } from "@/lib/bias";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 const FACTUALITY_LABEL: Record<string, string> = {
   HIGH: "Haute",
