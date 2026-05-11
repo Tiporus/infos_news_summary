@@ -1,5 +1,13 @@
-// Clustering léger : TF-IDF + cosine sur titre + excerpt,
-// avec un bonus si au moins une entité nommée (token capitalisé non-stopword) est partagée.
+// Clustering : TF-IDF + cosine sur titre + excerpt, augmenté par un dictionnaire
+// FR↔EN qui canonicalise les entités/concepts récurrents (Ukraine, war, election,
+// macron, etc.) — ce qui permet de matcher des articles cross-langue.
+//
+// On cluster si :
+//   (a) sim ≥ STRONG_SIM   (similarité textuelle franche)
+//   ou (b) sim ≥ WEAK_SIM ET ≥ MIN_SHARED_ENTITIES_WEAK entités partagées
+//          (recouvrement faible mais sujets en commun, typique du cross-langue).
+
+import { normalizeToken } from "./normalize";
 
 const STOPWORDS_FR = new Set([
   "le", "la", "les", "un", "une", "des", "de", "du", "et", "à", "au", "aux",
@@ -29,24 +37,37 @@ function tokenize(text: string): string[] {
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "");
-  return (lower.match(/[a-z0-9]{3,}/g) ?? []).filter(
-    (t) => !STOPWORDS_FR.has(t) && !STOPWORDS_EN.has(t),
-  );
+  const out: string[] = [];
+  for (const raw of lower.match(/[a-z0-9]{3,}/g) ?? []) {
+    if (STOPWORDS_FR.has(raw) || STOPWORDS_EN.has(raw)) continue;
+    out.push(normalizeToken(raw));
+  }
+  return out;
 }
 
 function namedEntities(text: string): Set<string> {
-  // Heuristique : tokens commençant par une majuscule, plus de 2 lettres,
-  // qui ne sont pas en début de phrase isolé. Marche raisonnablement
-  // sur les titres de news.
   const out = new Set<string>();
+  // 1. Capitalised tokens — typical for proper nouns in headlines.
   const matches = text.match(/[A-ZÀ-Ý][a-zà-ÿ'’\-]{2,}/g) ?? [];
   for (const m of matches) {
-    const norm = m
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "");
+    const norm = normalizeToken(m);
     if (STOPWORDS_FR.has(norm) || STOPWORDS_EN.has(norm)) continue;
     out.add(norm);
+  }
+  // 2. Anywhere a normalised topic token appears — boosts cross-language matching
+  //    when an English title says "war" and a French one says "guerre".
+  const lowerTokens = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .match(/[a-z0-9]{3,}/g) ?? [];
+  for (const t of lowerTokens) {
+    if (STOPWORDS_FR.has(t) || STOPWORDS_EN.has(t)) continue;
+    const norm = normalizeToken(t);
+    // Only add if normalisation actually mapped it to something canonical
+    // (= it was a known cross-lang topic) — avoids polluting entities with
+    // common nouns.
+    if (norm !== t) out.add(norm);
   }
   return out;
 }
@@ -81,10 +102,7 @@ function buildIdf(docs: Doc[]): Map<string, number> {
   return idf;
 }
 
-function tfidfVector(
-  doc: Doc,
-  idf: Map<string, number>,
-): Map<string, number> {
+function tfidfVector(doc: Doc, idf: Map<string, number>): Map<string, number> {
   const out = new Map<string, number>();
   const termFreq = tf(doc.tokens);
   for (const [tok, freq] of termFreq) {
@@ -109,30 +127,30 @@ function cosine(a: Map<string, number>, b: Map<string, number>): number {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-export type Cluster = {
-  /** Index of the seed doc that defined this cluster (in `docs`) */
-  seed: number;
-  /** All doc indices belonging to this cluster (including the seed) */
-  members: number[];
-};
+export type Cluster = { seed: number; members: number[] };
 
-const SIMILARITY_THRESHOLD = 0.32;
-const MIN_SHARED_ENTITIES = 1;
+// Strong textual match (intra-language, lots of shared vocabulary)
+const STRONG_SIM = 0.22;
+// Weak textual match — accept only with multi-entity overlap (cross-lang case)
+const WEAK_SIM = 0.10;
+const MIN_SHARED_ENTITIES_STRONG = 1;
+const MIN_SHARED_ENTITIES_WEAK = 3;
+const MIN_SHARED_ENTITIES_PURE = 4;
+// Hard cap to prevent runaway clusters that swallow loosely-related news
+const MAX_CLUSTER_SIZE = 25;
 
-/**
- * Greedy clustering: iterate documents in order, attach to the best
- * existing cluster if similarity is high enough and at least one entity
- * is shared, otherwise start a new cluster.
- *
- * `seedVectors` lets you pre-attach docs to existing stories without
- * mutating them — pass the canonical title (+ summary?) of each story.
- */
+function accepts(sim: number, sharedEntities: number): boolean {
+  if (sim >= STRONG_SIM && sharedEntities >= MIN_SHARED_ENTITIES_STRONG) return true;
+  if (sim >= WEAK_SIM && sharedEntities >= MIN_SHARED_ENTITIES_WEAK) return true;
+  if (sharedEntities >= MIN_SHARED_ENTITIES_PURE) return true;
+  return false;
+}
+
 export function clusterDocs(
   docs: Doc[],
   seeds: Array<{ key: string; doc: Doc }> = [],
 ): {
   clusters: Cluster[];
-  /** For each doc index, which seed.key it was attached to (if any) */
   seedAttachments: Map<number, string>;
 } {
   const allDocs = [...seeds.map((s) => s.doc), ...docs];
@@ -155,33 +173,30 @@ export function clusterDocs(
     const v = tfidfVector(doc, idf);
 
     // 1. Try existing stories first (seeds)
-    let bestSeed: { key: string; sim: number } | null = null;
+    let bestSeed: { key: string; score: number } | null = null;
     for (const s of seedVectors) {
       const shared = countShared(doc.entities, s.entities);
-      if (shared < MIN_SHARED_ENTITIES) continue;
       const sim = cosine(v, s.vec);
-      if (sim >= SIMILARITY_THRESHOLD && (!bestSeed || sim > bestSeed.sim)) {
-        bestSeed = { key: s.key, sim };
-      }
+      if (!accepts(sim, shared)) continue;
+      const score = sim + 0.05 * shared;
+      if (!bestSeed || score > bestSeed.score) bestSeed = { key: s.key, score };
     }
-
     if (bestSeed) {
       seedAttachments.set(i, bestSeed.key);
       return;
     }
 
     // 2. Try existing fresh clusters
-    let bestCluster: { idx: number; sim: number } | null = null;
+    let bestCluster: { idx: number; score: number } | null = null;
     for (let c = 0; c < clusters.length; c++) {
+      if (clusters[c].members.length >= MAX_CLUSTER_SIZE) continue;
       const cv = clusterVectors[c];
       const shared = countShared(doc.entities, cv.entities);
-      if (shared < MIN_SHARED_ENTITIES) continue;
       const sim = cosine(v, cv.centroid);
-      if (
-        sim >= SIMILARITY_THRESHOLD &&
-        (!bestCluster || sim > bestCluster.sim)
-      ) {
-        bestCluster = { idx: c, sim };
+      if (!accepts(sim, shared)) continue;
+      const score = sim + 0.05 * shared;
+      if (!bestCluster || score > bestCluster.score) {
+        bestCluster = { idx: c, score };
       }
     }
 
@@ -190,10 +205,15 @@ export function clusterDocs(
       c.members.push(i);
       const cv = clusterVectors[bestCluster.idx];
       mergeInto(cv.centroid, v);
-      for (const e of doc.entities) cv.entities.add(e);
+      // Note: we do NOT extend cv.entities. Keeping it pinned to the seed
+      // article avoids "topic drift" where a cluster keeps absorbing loosely
+      // related news as its entity set widens.
     } else {
       clusters.push({ seed: i, members: [i] });
-      clusterVectors.push({ centroid: new Map(v), entities: new Set(doc.entities) });
+      clusterVectors.push({
+        centroid: new Map(v),
+        entities: new Set(doc.entities),
+      });
     }
   });
 

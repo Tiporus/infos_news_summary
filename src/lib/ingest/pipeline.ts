@@ -5,7 +5,7 @@ import { inferCategory, inferRegion } from "./classify";
 import { uniqueSlug } from "@/lib/slugify";
 import {
   isAnthropicConfigured,
-  summarizeStory,
+  synthesizeStory,
   type ArticleForSummary,
 } from "@/lib/anthropic";
 import type { Bias } from "@/types";
@@ -14,68 +14,86 @@ export type IngestStats = {
   articlesAdded: number;
   storiesCreated: number;
   storiesUpdated: number;
-  summariesGenerated: number;
+  storiesSynthesized: number;
+  articlesPurged: number;
+  storiesPurged: number;
   feedErrors: Array<{ sourceId: string; message: string }>;
 };
 
-const RECENT_WINDOW_HOURS = 48;
-const BIAS_PRIORITY: Bias[] = ["CENTER", "CENTER_LEFT", "CENTER_RIGHT", "LEFT", "RIGHT"];
+const RETENTION_DAYS = 14;
 
-export async function runIngest(): Promise<IngestStats> {
+export type IngestOptions = {
+  /** Skip RSS fetch step (useful when reclustering existing articles). */
+  skipFetch?: boolean;
+  /** Recency window for clustering, in hours. Default 48. */
+  windowHours?: number;
+};
+
+const BIAS_PRIORITY: Bias[] = [
+  "CENTER",
+  "CENTER_LEFT",
+  "CENTER_RIGHT",
+  "LEFT",
+  "RIGHT",
+];
+
+export async function runIngest(opts: IngestOptions = {}): Promise<IngestStats> {
+  const { skipFetch = false, windowHours = 48 } = opts;
   const stats: IngestStats = {
     articlesAdded: 0,
     storiesCreated: 0,
     storiesUpdated: 0,
-    summariesGenerated: 0,
+    storiesSynthesized: 0,
+    articlesPurged: 0,
+    storiesPurged: 0,
     feedErrors: [],
   };
 
   const sources = await prisma.source.findMany({ where: { active: true } });
+  const sourcesById = new Map(sources.map((s) => [s.id, s]));
 
   // 1. Fetch RSS in parallel
-  const feeds = await Promise.allSettled(
-    sources.map(async (s) => {
-      const items = await fetchFeed(s.rssUrl);
-      return { source: s, items };
-    }),
-  );
+  if (!skipFetch) {
+    const feeds = await Promise.allSettled(
+      sources.map(async (s) => {
+        const items = await fetchFeed(s.rssUrl);
+        return { source: s, items };
+      }),
+    );
 
-  // 2. Persist new articles (deduplication on URL)
-  for (const result of feeds) {
-    if (result.status === "rejected") {
-      stats.feedErrors.push({
-        sourceId: "?",
-        message: String(result.reason),
-      });
-      continue;
-    }
-    const { source, items } = result.value;
-    for (const item of items) {
-      try {
-        await prisma.article.create({
-          data: {
-            sourceId: source.id,
-            title: item.title,
-            url: item.link,
-            excerpt: item.excerpt,
-            publishedAt: item.publishedAt,
-          },
-        });
-        stats.articlesAdded++;
-      } catch (e) {
-        // unique violation on url -> already known, ignore
-        if (!String(e).includes("Unique constraint")) {
-          stats.feedErrors.push({
-            sourceId: source.id,
-            message: String(e),
+    for (const result of feeds) {
+      if (result.status === "rejected") {
+        stats.feedErrors.push({ sourceId: "?", message: String(result.reason) });
+        continue;
+      }
+      const { source, items } = result.value;
+      for (const item of items) {
+        try {
+          await prisma.article.create({
+            data: {
+              sourceId: source.id,
+              title: item.title,
+              url: item.link,
+              excerpt: item.excerpt,
+              imageUrl: item.imageUrl,
+              publishedAt: item.publishedAt,
+            },
           });
+          stats.articlesAdded++;
+        } catch (e) {
+          if (!String(e).includes("Unique constraint")) {
+            stats.feedErrors.push({
+              sourceId: source.id,
+              message: String(e),
+            });
+          }
         }
       }
     }
   }
 
-  // 3. Clustering pass on articles from the recent window
-  const since = new Date(Date.now() - RECENT_WINDOW_HOURS * 3600 * 1000);
+  // 2. Clustering pass
+  const since = new Date(Date.now() - windowHours * 3600 * 1000);
 
   const unclustered = await prisma.article.findMany({
     where: { storyId: null, publishedAt: { gte: since } },
@@ -93,17 +111,20 @@ export async function runIngest(): Promise<IngestStats> {
   );
   const seeds = recentStories.map((s) => ({
     key: s.id,
-    doc: makeDoc(s.id, s.title, s.summary ?? ""),
+    doc: makeDoc(
+      s.id,
+      `${s.title} ${s.summary ?? ""}`,
+      s.articles.map((a) => a.title).join(" · "),
+    ),
   }));
 
   const { clusters, seedAttachments } = clusterDocs(docs, seeds);
 
-  // Map of slugs already taken (avoid extra DB roundtrips)
   const existingSlugs = new Set(
     (await prisma.story.findMany({ select: { slug: true } })).map((s) => s.slug),
   );
 
-  // 3a. Attach articles to existing stories
+  // 2a. Attach articles to existing stories
   const updatedStoryIds = new Set<string>();
   for (const [docIdx, storyId] of seedAttachments) {
     const article = unclustered[docIdx];
@@ -119,26 +140,25 @@ export async function runIngest(): Promise<IngestStats> {
     stats.storiesUpdated++;
   }
 
-  // 3b. Create new stories from fresh clusters
+  // 2b. Create new stories from fresh clusters
   const newStoryIds: string[] = [];
   for (const cluster of clusters) {
     if (cluster.members.length < 1) continue;
 
     const memberArticles = cluster.members.map((i) => unclustered[i]);
-    const seedArticle = memberArticles[0];
-    const title = seedArticle.title;
-    const slug = uniqueSlug(title, existingSlugs);
+    const fallbackTitle = pickCanonicalTitle(memberArticles);
+    const slug = uniqueSlug(fallbackTitle, existingSlugs);
     existingSlugs.add(slug);
 
     const aggregateText = memberArticles
       .map((a) => `${a.title} ${a.excerpt ?? ""}`)
       .join(" ");
 
-    const region = inferRegion(seedArticle.source.country, aggregateText);
+    const region = inferRegion(memberArticles[0].source.country, aggregateText);
     const category = inferCategory(aggregateText);
 
     const story = await prisma.story.create({
-      data: { title, slug, category, region },
+      data: { title: fallbackTitle, slug, category, region },
     });
 
     for (const a of memberArticles) {
@@ -152,7 +172,7 @@ export async function runIngest(): Promise<IngestStats> {
     newStoryIds.push(story.id);
   }
 
-  // 4. Generate AI summaries for stories with >= 2 articles & no summary yet
+  // 3. AI synthesis (titre généraliste FR + résumé global)
   if (isAnthropicConfigured()) {
     const candidates = await prisma.story.findMany({
       where: {
@@ -166,43 +186,93 @@ export async function runIngest(): Promise<IngestStats> {
       if (story.articles.length < 2) continue;
       try {
         const articles: ArticleForSummary[] = story.articles
-          .slice(0, 6)
+          .slice(0, 8)
           .map((a) => ({
             source: a.source.name,
             bias: a.source.bias,
+            language: a.source.language,
             title: a.title,
             excerpt: a.excerpt,
           }));
-        const summary = await summarizeStory(story.title, articles);
 
-        // refresh canonical title using bias priority
-        const canonicalTitle = pickCanonicalTitle(story.articles);
+        const synthesis = await synthesizeStory(story.title, articles);
 
         await prisma.story.update({
           where: { id: story.id },
-          data: { summary, title: canonicalTitle },
+          data: {
+            title: synthesis.title || story.title,
+            summary: synthesis.intro,
+            synthesisPoints: JSON.stringify(synthesis.points),
+            viewLeft: synthesis.viewLeft,
+            viewRight: synthesis.viewRight,
+          },
         });
-        stats.summariesGenerated++;
+        stats.storiesSynthesized++;
       } catch (e) {
         stats.feedErrors.push({
           sourceId: `story:${story.id}`,
-          message: `summary failed: ${String(e)}`,
+          message: `synthesis failed: ${String(e)}`,
+        });
+      }
+    }
+  } else {
+    // Pas de clé Claude → on garantit au moins un titre français quand
+    // une story regroupe plusieurs articles en mélangeant des sources FR/EN.
+    const candidates = await prisma.story.findMany({
+      where: { id: { in: [...updatedStoryIds, ...newStoryIds] } },
+      include: { articles: { include: { source: true } } },
+    });
+    for (const story of candidates) {
+      const better = pickCanonicalTitle(story.articles);
+      if (better && better !== story.title) {
+        await prisma.story.update({
+          where: { id: story.id },
+          data: { title: better },
         });
       }
     }
   }
 
+  // 5. Cleanup : purge articles older than RETENTION_DAYS, then orphan stories.
+  //    Le trigger Postgres maintient automatiquement Story.articleCount à jour.
+  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 3600 * 1000);
+  const purgedArticles = await prisma.article.deleteMany({
+    where: { publishedAt: { lt: cutoff } },
+  });
+  stats.articlesPurged = purgedArticles.count;
+
+  const purgedStories = await prisma.story.deleteMany({
+    where: { articleCount: 0 },
+  });
+  stats.storiesPurged = purgedStories.count;
+
+  // Avoid unused var lint when no fetch happened
+  void sourcesById;
   return stats;
 }
 
+/**
+ * Choose a fallback title for a story (used when Claude isn't configured).
+ * Strong preference: French-language sources, then by political-bias priority,
+ * then by recency. Falls back to the first article when nothing matches.
+ */
 function pickCanonicalTitle(
-  articles: Array<{ title: string; publishedAt: Date; source: { bias: string } }>,
+  articles: Array<{
+    title: string;
+    publishedAt: Date;
+    source: { bias: string; language: string };
+  }>,
 ): string {
+  if (articles.length === 0) return "(sans titre)";
+
+  const french = articles.filter((a) => a.source.language === "fr");
+  const pool = french.length > 0 ? french : articles;
+
   for (const bias of BIAS_PRIORITY) {
-    const match = articles
+    const match = pool
       .filter((a) => a.source.bias === bias)
       .sort((a, b) => +b.publishedAt - +a.publishedAt)[0];
     if (match) return match.title;
   }
-  return articles[0]?.title ?? "(sans titre)";
+  return pool[0].title;
 }

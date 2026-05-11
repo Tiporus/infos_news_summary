@@ -28,7 +28,7 @@ export default function RootLayout({
         <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3">
             <Link href="/" className="flex items-center gap-2">
-              <span className="inline-block h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 via-zinc-400 to-red-500" />
+              <span className="inline-block h-6 w-6 rounded-full bg-gradient-to-br from-red-500 via-zinc-400 to-blue-500" />
               <span className="text-lg font-semibold tracking-tight">
                 Prisme
               </span>

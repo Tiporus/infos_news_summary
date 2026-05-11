@@ -6,8 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Direct connection used during prisma migrate / db push when the runtime
+  // url targets the transaction pooler (port 6543). Optional in dev.
+  directUrl = env("DIRECT_URL")
 }
 
 model Source {
@@ -30,6 +33,7 @@ model Article {
   title       String
   url         String   @unique
   excerpt     String?
+  imageUrl    String?
   publishedAt DateTime
   fetchedAt   DateTime @default(now())
   storyId     String?
@@ -41,16 +45,22 @@ model Article {
 }
 
 model Story {
-  id            String    @id @default(cuid())
-  title         String
-  slug          String    @unique
-  summary       String?
-  category      String
-  region        String
-  firstSeenAt   DateTime  @default(now())
-  lastUpdatedAt DateTime  @updatedAt
-  articles      Article[]
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  summary         String?   // Tease court (2 phrases) — utilisé sur les cards
+  synthesisPoints String?   // JSON array of bullet-point strings (synthèse structurée)
+  viewLeft        String?   // Lecture par les sources de gauche
+  viewRight       String?   // Lecture par les sources de droite
+  imageUrl        String?   // Image illustrative (RSS thumbnail ou URL externe)
+  articleCount    Int       @default(0) // dénormalisé, maintenu par trigger
+  category        String
+  region          String
+  firstSeenAt     DateTime  @default(now())
+  lastUpdatedAt   DateTime  @updatedAt
+  articles        Article[]
 
   @@index([region, category])
   @@index([lastUpdatedAt])
+  @@index([articleCount(sort: Desc), lastUpdatedAt(sort: Desc)])
 }

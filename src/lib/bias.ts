@@ -17,21 +17,22 @@ export const BIAS_SHORT: Record<Bias, string> = {
   RIGHT: "D",
 };
 
-// Tailwind background classes for the BiasBar segments
+// Tailwind background classes for the BiasBar segments.
+// Convention française : rouge à gauche, bleu à droite.
 export const BIAS_BG: Record<Bias, string> = {
-  LEFT: "bg-blue-600",
-  CENTER_LEFT: "bg-blue-400",
+  LEFT: "bg-red-600",
+  CENTER_LEFT: "bg-red-400",
   CENTER: "bg-zinc-400",
-  CENTER_RIGHT: "bg-red-400",
-  RIGHT: "bg-red-600",
+  CENTER_RIGHT: "bg-blue-400",
+  RIGHT: "bg-blue-600",
 };
 
 export const BIAS_TEXT: Record<Bias, string> = {
-  LEFT: "text-blue-700 dark:text-blue-400",
-  CENTER_LEFT: "text-blue-500 dark:text-blue-300",
+  LEFT: "text-red-700 dark:text-red-400",
+  CENTER_LEFT: "text-red-500 dark:text-red-300",
   CENTER: "text-zinc-600 dark:text-zinc-300",
-  CENTER_RIGHT: "text-red-500 dark:text-red-300",
-  RIGHT: "text-red-700 dark:text-red-400",
+  CENTER_RIGHT: "text-blue-500 dark:text-blue-300",
+  RIGHT: "text-blue-700 dark:text-blue-400",
 };
 
 export function countByBias(biases: string[]): BiasCounts {

@@ -1,18 +1,20 @@
 import { FiltersNav } from "@/components/FiltersNav";
+import { HotTopics } from "@/components/HotTopics";
 import { StoryCard } from "@/components/StoryCard";
-import { getDailyStats, getStories } from "@/lib/stories";
+import { getDailyStats, getHotTopics, getStories } from "@/lib/stories";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
-  const [stories, stats] = await Promise.all([
-    getStories({ limit: 36 }),
+  const [stories, hotTopics, stats] = await Promise.all([
+    getStories({ limit: 30, withSummaryOnly: true }),
+    getHotTopics(8),
     getDailyStats(),
   ]);
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-2xl bg-gradient-to-br from-blue-600 via-zinc-700 to-red-600 p-6 text-white shadow-md">
+    <div className="space-y-6">
+      <section className="rounded-2xl bg-gradient-to-br from-red-600 via-zinc-700 to-blue-600 p-6 text-white shadow-md">
         <p className="text-xs uppercase tracking-widest opacity-80">
           Briefing du jour
         </p>
@@ -22,13 +24,15 @@ export default async function HomePage() {
         <p className="mt-3 max-w-2xl text-sm opacity-90 md:text-base">
           Chaque story regroupe plusieurs articles parlant du même événement.
           La barre de couleur montre la répartition politique des sources qui
-          la couvrent — bleu à gauche, gris au centre, rouge à droite.
+          la couvrent — rouge à gauche, gris au centre, bleu à droite.
         </p>
         <p className="mt-4 text-xs opacity-80">
           {stats.stories} stories · {stats.articles} articles ingérés ces
           dernières 24 h
         </p>
       </section>
+
+      <HotTopics topics={hotTopics} />
 
       <FiltersNav />
 
@@ -48,9 +52,9 @@ export default async function HomePage() {
 function EmptyState() {
   return (
     <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-      <p className="mb-2 font-medium">Aucune story pour le moment.</p>
+      <p className="mb-2 font-medium">Aucune story avec synthèse rédigée pour le moment.</p>
       <p>
-        Lancez une ingestion RSS pour peupler la base :
+        Lancez une ingestion ou rédigez des synthèses :
         <code className="mx-1 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">
           npm run ingest:once
         </code>
